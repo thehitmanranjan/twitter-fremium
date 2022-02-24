@@ -1,10 +1,16 @@
 const needle = require('needle');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
+const Users = require('./models/user')
+const Tweets = require('./models/tweet')
 const token = process.env.BEARER_TOKEN;
 
 const rulesURL = 'https://api.twitter.com/2/tweets/search/stream/rules';
 const streamURL = 'https://api.twitter.com/2/tweets/search/stream?expansions=referenced_tweets.id,author_id';
+let tweet_author
+let tweet_url
+let folder_name
 
 // this sets up two rules - the value is the search terms to match on, and the tag is an identifier that
 // will be applied to the Tweets return to show which rule they matched
@@ -98,16 +104,18 @@ function streamConnect(retryAttempt) {
         try {
             const json = JSON.parse(data);
 
-            const tweet_author = json.data.author_id
-            const tweet_url="https://www.twitter.com/anyuser/status/" + json.data.referenced_tweets[0].id;
+            tweet_author = json.data.author_id
+            tweet_url = "https://www.twitter.com/anyuser/status/" + json.data.referenced_tweets[0].id;
             const tweet_text = json.data.text
 
             const last_index_of_quote = tweet_text.lastIndexOf("@")
-            const folder_name = tweet_text.substring(last_index_of_quote + 16)
-            
+            folder_name = tweet_text.substring(last_index_of_quote + 16)
+
             console.log("Author: ", tweet_author)
             console.log("Tweet URL: ", tweet_url)
             console.log("Folder Name: ", folder_name)
+
+            bookmarkTweet(tweet_author,folder_name, tweet_url)
             // A successful connection resets retry count.
             retryAttempt = 0;
         } catch (e) {
@@ -159,3 +167,38 @@ function streamConnect(retryAttempt) {
     // Listen to the stream.
     streamConnect(0);
 })();
+function bookmarkTweet(authorID, folderName, tweetUrl) {
+    console.log("Inside Function")
+    const url = process.env.MONGO_URL;
+    const connect = mongoose.connect(url);
+
+    connect.then((db) => {
+        console.log("Connected correctly to server");
+    }, (err) => { console.log(err); });
+
+    const userId = {
+        "userId": authorID
+    }
+    const tweet = {
+        "userId" : authorID,
+        "folderName": folderName,
+        "tweetUrl" : tweetUrl
+    }
+
+    Users.findOneAndUpdate(userId, userId, {
+        new: true,
+        upsert: true // Make this update into an upsert
+    },(err) => {
+        if (err){
+            console.log(err)
+        }
+    });
+
+    Tweets.findOneAndUpdate(tweet, tweet, {
+        upsert: true // Make this update into an upsert
+    },(err) => {
+        if (err){
+            console.log(err)
+        }
+    });
+}
