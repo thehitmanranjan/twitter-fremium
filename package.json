@@ -12,6 +12,7 @@
   "dependencies": {
     "dotenv": "^16.0.0",
     "mongoose": "^6.2.3",
-    "needle": "^3.0.0"
+    "needle": "^3.0.0",
+    "twit": "^2.2.11"
   }
 }

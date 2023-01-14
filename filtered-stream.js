@@ -115,7 +115,7 @@ function streamConnect(retryAttempt) {
             console.log("Tweet URL: ", tweet_url)
             console.log("Folder Name: ", folder_name)
 
-            bookmarkTweet(tweet_author,folder_name, tweet_url)
+            bookmarkTweet(tweet_author, folder_name, tweet_url)
             // A successful connection resets retry count.
             retryAttempt = 0;
         } catch (e) {
@@ -180,25 +180,54 @@ function bookmarkTweet(authorID, folderName, tweetUrl) {
         "userId": authorID
     }
     const tweet = {
-        "userId" : authorID,
+        "userId": authorID,
         "folderName": folderName,
-        "tweetUrl" : tweetUrl
+        "tweetUrl": tweetUrl
     }
 
     Users.findOneAndUpdate(userId, userId, {
         new: true,
         upsert: true // Make this update into an upsert
-    },(err) => {
-        if (err){
+    }, (err) => {
+        if (err) {
             console.log(err)
         }
     });
 
     Tweets.findOneAndUpdate(tweet, tweet, {
         upsert: true // Make this update into an upsert
-    },(err) => {
-        if (err){
+    }, (err) => {
+        if (err) {
             console.log(err)
         }
     });
+    replyToTweet()
+}
+
+function replyToTweet() {
+    const Twit = require('twit');
+
+    // Replace these values with your own Twitter API keys
+    const T = new Twit({
+        consumer_key: 'bw4Zc4xLZFEC4nfMNwV3eslJc',
+        consumer_secret: 'ccDzhwHljym9V99Bql12r9Qilggv3kXpNg3NMvyMQm3DDS5oxR',
+        access_token: '451944242-aDhVC9OqG1ij8horLHpiWx6rHme6UCddCN680Au0',
+        access_token_secret: 'ZrUKZkzCynNNK26onKNj1pol2LR0YnXufAf71A2DIAOg3'
+    });
+
+    // The tweet you want to reply to
+    const tweetId = '1602678852933029889';
+
+    // The text of your reply
+    const replyText = 'This is my reply!';
+
+    T.post('statuses/update', {
+        status: replyText,
+        in_reply_to_status_id: tweetId
+    }, (err, data, response) => {
+        // console.log({err});
+        // console.log({response});
+        console.log("Replied")
+    });
+
 }
